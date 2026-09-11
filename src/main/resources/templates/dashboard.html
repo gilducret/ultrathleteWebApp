@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout}">
+<head>
+    <title>Dashboard | Ultrathlete</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+    <!-- ═══════════════════════════════════════════
+         PAGE TITLE BAR
+    ════════════════════════════════════════════════ -->
+    <section class="parallax-container" data-parallax-img="images/single-trip-bg.jpg">
+        <div class="parallax-content breadcrumbs-custom context-dark">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-12 col-lg-9 text-center">
+                        <h2 class="breadcrumbs-custom-title"
+                            th:text="'Welcome back, ' + ${displayName}">
+                            Welcome back
+                        </h2>
+                        <p class="lead">Your races and predictions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         QUICK ACTIONS
+    ════════════════════════════════════════════════ -->
+    <section class="section section-md bg-gray-1">
+        <div class="container">
+            <div class="row row-50 justify-content-center">
+
+                <!-- Upload Training -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="box-icon box-icon-classic text-center">
+                        <span class="icon icon-lg mdi mdi-upload"
+                              style="color:#5fb458; font-size:48px;"></span>
+                        <h5 class="offset-top-20">Upload Training Run</h5>
+                        <p>
+                            Add a past training run or race to improve
+                            the accuracy of your pace model.
+                        </p>
+                        <a class="button button-primary offset-top-20"
+                           th:href="@{/upload}">
+                            Upload GPX
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Predict a Race -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="box-icon box-icon-classic text-center">
+                        <span class="icon icon-lg mdi mdi-chart-line"
+                              style="color:#5fb458; font-size:48px;"></span>
+                        <h5 class="offset-top-20">Predict a Race</h5>
+                        <p>
+                            Upload a race GPX and get your predicted finish time
+                            and checkpoint splits.
+                        </p>
+                        <a class="button button-primary offset-top-20"
+                           th:href="@{/predict}">
+                            Get Prediction
+                        </a>
+                    </div>
+                </div>
+
+                <!-- My Races -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="box-icon box-icon-classic text-center">
+                        <span class="icon icon-lg mdi mdi-map-marker"
+                              style="color:#5fb458; font-size:48px;"></span>
+                        <h5 class="offset-top-20">My Races</h5>
+                        <p>
+                            View your saved races, past predictions,
+                            and live tracking history.
+                        </p>
+                        <a class="button button-primary offset-top-20"
+                           th:href="@{/races}">
+                            View Races
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         RECENT ACTIVITY
+         This section will be populated from the
+         database once races are saved
+    ════════════════════════════════════════════════ -->
+    <section class="section section-md bg-white">
+        <div class="container">
+            <h4>Recent Activity</h4>
+            <hr>
+
+            <!-- Empty state — shown when no races uploaded yet -->
+            <div class="text-center offset-top-30 offset-bottom-30"
+                 th:if="${races == null or races.isEmpty()}">
+                <span class="mdi mdi-run"
+                      style="font-size:64px; color:#dee2e6;"></span>
+                <p class="text-muted offset-top-20">
+                    No races yet. Upload your first GPX file to get started.
+                </p>
+                <a class="button button-primary"
+                   th:href="@{/upload}">
+                    Upload your first run
+                </a>
+            </div>
+
+            <!-- Race list — shown when races exist -->
+            <div th:if="${races != null and !races.isEmpty()}">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Race</th>
+                            <th>Date</th>
+                            <th>Distance</th>
+                            <th>Predicted time</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="race : ${races}">
+                            <td th:text="${race.name}">Race name</td>
+                            <td th:text="${race.date}">Date</td>
+                            <td th:text="${race.distanceKm} + ' km'">Distance</td>
+                            <td th:text="${race.predictedTime}">Time</td>
+                            <td>
+                                <a class="button button-sm button-primary"
+                                   th:href="@{/races/{id}(id=${race.id})}">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

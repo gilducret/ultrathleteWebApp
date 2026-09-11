@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Upload Reference Runs | Ultrathlete</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+    <!-- Page title bar -->
+    <section class="parallax-container" style="background:#333; padding:60px 0;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-9 text-center context-dark">
+                    <h2>Upload Reference Runs</h2>
+                    <p class="lead">
+                        Upload your past training runs and races to build
+                        your personal pace model.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload form -->
+    <section class="section section-md bg-gray-1">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+
+                    <!-- Info box -->
+                    <div class="alert" style="background:#f0f7ef; border-left:4px solid #5fb458; padding:16px; margin-bottom:24px;">
+                        <h6 style="color:#5fb458;">What are reference runs?</h6>
+                        <p style="margin:0; color:#555;">
+                            These are GPX files from your past training runs or races.
+                            The more you upload, the more accurate your predictions will be.
+                            Upload at least 5-10 runs for best results.
+                        </p>
+                    </div>
+
+                    <!-- Upload form -->
+                    <div style="background:#fff; padding:32px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                        <h4 style="margin-bottom:24px;">Select GPX Files</h4>
+
+                        <form id="uploadForm">
+                            <!-- File input -->
+                            <div class="form-group">
+                                <label for="gpxFiles">GPX Files</label>
+                                <div class="custom-file">
+                                    <input type="file"
+                                           class="custom-file-input"
+                                           id="gpxFiles"
+                                           accept=".gpx"
+                                           multiple>
+                                    <label class="custom-file-label" for="gpxFiles">
+                                        Choose files...
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted mt-2">
+                                    Select one or more .gpx files. You can upload more later.
+                                </small>
+                            </div>
+
+                            <!-- Selected files list -->
+                            <div id="fileList" style="display:none; margin:16px 0;">
+                                <h6>Selected files:</h6>
+                                <ul id="fileNames" style="color:#555; padding-left:20px;"></ul>
+                            </div>
+
+                            <!-- Submit button -->
+                            <button type="submit"
+                                    id="uploadBtn"
+                                    class="button button-primary button-block button-lg"
+                                    style="margin-top:24px;">
+                                Upload and Build Model
+                            </button>
+                        </form>
+
+                        <!-- Progress -->
+                        <div id="progress" style="display:none; margin-top:24px;">
+                            <p style="color:#555;">
+                                <span id="progressText">Uploading files...</span>
+                            </p>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-animated"
+                                     style="width:100%; background:#5fb458;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result -->
+                        <div id="result" style="display:none; margin-top:24px;"></div>
+                    </div>
+
+                    <!-- Back to dashboard -->
+                    <div class="text-center" style="margin-top:24px;">
+                        <a th:href="@{/dashboard}" style="color:#5fb458;">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Extra JS for this page only -->
+<th:block layout:fragment="extra-js">
+    <script th:inline="javascript">
+        (function() {
+
+            // ── File picker — show selected file names ────────────────────────
+            const input     = document.getElementById('gpxFiles');
+            const fileList  = document.getElementById('fileList');
+            const fileNames = document.getElementById('fileNames');
+            const label     = document.querySelector('.custom-file-label');
+
+            input.addEventListener('change', function() {
+                const files = Array.from(this.files);
+                if (files.length === 0) {
+                    fileList.style.display = 'none';
+                    label.textContent = 'Choose files...';
+                    return;
+                }
+                label.textContent = files.length + ' file(s) selected';
+                fileNames.innerHTML = files
+                    .map(f => `<li>${f.name} <small style="color:#aaa;">(${(f.size/1024).toFixed(0)} KB)</small></li>`)
+                    .join('');
+                fileList.style.display = 'block';
+            });
+
+            // ── Form submit ───────────────────────────────────────────────────
+            const form       = document.getElementById('uploadForm');
+            const uploadBtn  = document.getElementById('uploadBtn');
+            const progress   = document.getElementById('progress');
+            const progressTx = document.getElementById('progressText');
+            const result     = document.getElementById('result');
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const files = input.files;
+                if (files.length === 0) {
+                    showResult('error', 'Please select at least one GPX file.');
+                    return;
+                }
+
+                // Show progress
+                uploadBtn.disabled = true;
+                progress.style.display = 'block';
+                result.style.display   = 'none';
+                progressTx.textContent = `Uploading ${files.length} file(s) and building model...`;
+
+                try {
+                    // Build multipart form data
+                    const formData = new FormData();
+                    for (const file of files) {
+                        formData.append('files', file);
+                    }
+                    // The userId comes from the session — the server reads it
+                    // from the authenticated principal, not from the form
+                    formData.append('userId', /*[[${userId}]]*/ '0');
+
+                    const response = await fetch('/api/reference/upload', {
+                        method: 'POST',
+                        body:   formData,
+                        // No Content-Type header — browser sets it with boundary automatically
+                    });
+
+                    const text = await response.text();
+
+                    if (response.ok) {
+                        showResult('success', '✓ ' + text);
+                        // Reset form
+                        form.reset();
+                        label.textContent = 'Choose files...';
+                        fileList.style.display = 'none';
+                    } else {
+                        showResult('error', '✗ Upload failed: ' + text);
+                    }
+
+                } catch (err) {
+                    showResult('error', '✗ Could not reach server: ' + err.message);
+                } finally {
+                    uploadBtn.disabled  = false;
+                    progress.style.display = 'none';
+                }
+            });
+
+            function showResult(type, message) {
+                result.style.display = 'block';
+                const color = type === 'success' ? '#5fb458' : '#f5543f';
+                const bg    = type === 'success' ? '#f0f7ef' : '#fff5f5';
+                result.innerHTML = `
+            <div style="background:${bg}; border-left:4px solid ${color};
+                        padding:16px; border-radius:2px; color:${color};">
+                ${message}
+            </div>`;
+            }
+
+        })();
+    </script>
+</th:block>
+
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!--
+    layout:decorate tells Thymeleaf Layout Dialect to wrap this page
+    inside layout.html, replacing layout:fragment="content" with
+    the content section defined below.
+    This page only contains what's unique to the home page.
+-->
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Ultrathlete — Ultra Trail Race Prediction</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+    <!-- ═══════════════════════════════════════════
+         HERO SECTION
+    ════════════════════════════════════════════════ -->
+    <section class="section section-xl context-dark text-center bg-gray-700 bg-decorate">
+        <div class="container">
+            <div class="row justify-content-md-center">
+                <div class="col-md-9 col-lg-7">
+                    <h1>Predict Your Ultra Trail Race</h1>
+                    <p class="lead offset-top-20">
+                        Upload your past training runs. Get accurate finish time
+                        predictions for your next race — at every checkpoint,
+                        aid station, and summit.
+                    </p>
+                    <div class="group group-middle offset-top-34">
+                        <a class="button button-lg button-primary"
+                           th:href="@{/oauth2/authorization/auth0(screen_hint=signup)}">
+                            Get Started — It's Free
+                        </a>
+                        <a class="button button-lg button-default-outline"
+                           th:href="@{/oauth2/authorization/auth0}">
+                            Sign In
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         FEATURES
+    ════════════════════════════════════════════════ -->
+    <section class="section section-md bg-gray-1">
+        <div class="container">
+            <div class="row justify-content-md-center">
+                <div class="col-md-9 col-lg-7 text-center">
+                    <h3>Everything you need on race day</h3>
+                    <p class="offset-top-10">
+                        Built by ultra trail runners, for ultra trail runners.
+                    </p>
+                </div>
+            </div>
+            <div class="row row-50 offset-top-50 text-center">
+
+                <div class="col-md-4">
+                    <div class="icon-box">
+                        <span class="icon icon-lg mdi mdi-chart-line"
+                              style="color:#5fb458; font-size:48px;"></span>
+                        <h5 class="offset-top-20">Personal Pace Model</h5>
+                        <p>
+                            Upload your past GPX traces. We analyse your real
+                            performance across different terrains and elevations
+                            to build a model that's unique to you.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="icon-box">
+                        <span class="icon icon-lg mdi mdi-clock-outline"
+                              style="color:#5fb458; font-size:48px;"></span>
+                        <h5 class="offset-top-20">Checkpoint Predictions</h5>
+                        <p>
+                            Get predicted arrival times at every checkpoint,
+                            aid station, col, and the finish line — before
+                            the race even starts.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="icon-box">
+                        <span class="icon icon-lg mdi mdi-map-marker"
+                              style="color:#5fb458; font-size:48px;"></span>
+                        <h5 class="offset-top-20">Live Follower Tracking</h5>
+                        <p>
+                            During the race, friends and family see your
+                            position on the map and your updated ETA
+                            to each checkpoint — in real time.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         HOW IT WORKS
+    ════════════════════════════════════════════════ -->
+    <section class="section section-md context-dark bg-gray-700">
+        <div class="container">
+            <div class="row justify-content-md-center">
+                <div class="col-md-9 col-lg-7 text-center">
+                    <h3>How it works</h3>
+                </div>
+            </div>
+            <div class="row row-50 offset-top-50">
+
+                <div class="col-md-3 text-center">
+                    <div class="counter-box">
+                        <span style="font-size:48px; font-weight:700; color:#5fb458;">1</span>
+                        <h6 class="offset-top-10">Upload past races</h6>
+                        <p>Add your GPX files from Garmin, Strava, or any GPS device.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3 text-center">
+                    <div class="counter-box">
+                        <span style="font-size:48px; font-weight:700; color:#5fb458;">2</span>
+                        <h6 class="offset-top-10">We build your model</h6>
+                        <p>Our algorithm learns your pace on climbs, descents, and flats.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3 text-center">
+                    <div class="counter-box">
+                        <span style="font-size:48px; font-weight:700; color:#5fb458;">3</span>
+                        <h6 class="offset-top-10">Upload your race GPX</h6>
+                        <p>Add the course file for your next race.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3 text-center">
+                    <div class="counter-box">
+                        <span style="font-size:48px; font-weight:700; color:#5fb458;">4</span>
+                        <h6 class="offset-top-10">Get your prediction</h6>
+                        <p>See your predicted time at every checkpoint on the course.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="row offset-top-50">
+                <div class="col-12 text-center">
+                    <a class="button button-lg button-primary"
+                       th:href="@{/oauth2/authorization/auth0(screen_hint=signup)}">
+                        Start for free
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

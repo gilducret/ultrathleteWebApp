@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html class="wide wow-animation"
+      lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <!--
+        Each page can override the title using:
+            <title layout:title-pattern="$CONTENT_TITLE | Ultrathlete">My Page</title>
+        If not overridden, this default is used.
+    -->
+    <title>Ultrathlete</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="icon" th:href="@{/images/favicon.ico}" type="image/x-icon">
+    <link rel="stylesheet" type="text/css"
+          href="//fonts.googleapis.com/css?family=Open+Sans:300,300i,400,700%7COswald:300,400,500,600,700">
+    <link rel="stylesheet" th:href="@{/css/bootstrap.css}">
+    <link rel="stylesheet" th:href="@{/css/fonts.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!-- Each page can add its own extra CSS here -->
+    <th:block layout:fragment="extra-css"></th:block>
+</head>
+<body>
+
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-body">
+            <div class="cssload-container">
+                <div class="cssload-speeding-wheel"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page">
+
+        <!-- ═══════════════════════════════════════════
+             NAVBAR — shared across all pages
+             sec:authorize shows/hides items based on
+             whether the user is logged in
+        ════════════════════════════════════════════════ -->
+        <header class="section page-header">
+            <div class="rd-navbar-wrap">
+                <nav class="rd-navbar rd-navbar-classic"
+                     data-layout="rd-navbar-fixed"
+                     data-sm-layout="rd-navbar-fixed"
+                     data-md-layout="rd-navbar-fixed"
+                     data-md-device-layout="rd-navbar-fixed"
+                     data-lg-layout="rd-navbar-static"
+                     data-lg-device-layout="rd-navbar-static"
+                     data-xl-layout="rd-navbar-static"
+                     data-xl-device-layout="rd-navbar-static"
+                     data-lg-stick-up-offset="46px"
+                     data-xl-stick-up-offset="46px"
+                     data-lg-stick-up="true"
+                     data-xl-stick-up="true">
+                    <div class="rd-navbar-main-outer">
+                        <div class="rd-navbar-main">
+
+                            <!-- Brand -->
+                            <div class="rd-navbar-panel">
+                                <button class="rd-navbar-toggle"
+                                        data-rd-navbar-toggle=".rd-navbar-nav-wrap">
+                                    <span></span>
+                                </button>
+                                <div class="rd-navbar-brand">
+                                    <a class="brand" th:href="@{/}">
+                                        <span style="font-size:24px; font-weight:700; color:#5fb458;">
+                                            Ultrathlete
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Nav links -->
+                            <div class="rd-navbar-main-element">
+                                <div class="rd-navbar-nav-wrap">
+                                    <ul class="rd-navbar-nav">
+
+                                        <!-- Always visible -->
+                                        <li class="rd-nav-item">
+                                            <a class="rd-nav-link" th:href="@{/}">Home</a>
+                                        </li>
+
+                                        <!-- Visible only when logged in -->
+                                        <li class="rd-nav-item" sec:authorize="isAuthenticated()">
+                                            <a class="rd-nav-link" th:href="@{/dashboard}">Dashboard</a>
+                                        </li>
+                                        <li class="rd-nav-item" sec:authorize="isAuthenticated()">
+                                            <a class="rd-nav-link" th:href="@{/races}">My Races</a>
+                                        </li>
+                                        <li class="rd-nav-item" sec:authorize="isAuthenticated()">
+                                            <a class="rd-nav-link" th:href="@{/predict}">Predict</a>
+                                        </li>
+
+                                        <!-- Visible only when NOT logged in -->
+                                        <li class="rd-nav-item" sec:authorize="!isAuthenticated()">
+                                            <a class="rd-nav-link"
+                                               th:href="@{/oauth2/authorization/auth0}">
+                                                Sign In
+                                            </a>
+                                        </li>
+                                        <li class="rd-nav-item" sec:authorize="!isAuthenticated()">
+                                            <a class="rd-nav-link button button-primary button-sm"
+                                               th:href="@{/oauth2/authorization/auth0(screen_hint=signup)}">
+                                                Sign Up Free
+                                            </a>
+                                        </li>
+
+                                        <!-- Visible only when logged in — shows name + logout -->
+                                        <li class="rd-nav-item" sec:authorize="isAuthenticated()">
+                                            <a class="rd-nav-link" th:href="@{/logout}">
+                                                Sign Out
+                                                (<span th:text="${displayName}"
+                                                       sec:authentication="name"></span>)
+                                            </a>
+                                        </li>
+
+                                    </ul>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </header>
+
+        <!-- ═══════════════════════════════════════════
+             CONTENT — each page defines this section
+             This is the only part that changes per page
+        ════════════════════════════════════════════════ -->
+        <main layout:fragment="content">
+            <!-- overridden by each page -->
+        </main>
+
+        <!-- ═══════════════════════════════════════════
+             FOOTER — shared across all pages
+        ════════════════════════════════════════════════ -->
+        <footer class="section footer-classic context-dark bg-gray-700">
+            <div class="container">
+                <div class="row row-30 justify-content-between align-items-center">
+                    <div class="col-lg-4">
+                        <span style="font-size:20px; font-weight:700; color:#5fb458;">
+                            Ultrathlete
+                        </span>
+                        <p class="footer-text mt-2">
+                            Race prediction and live tracking for ultra trail runners.
+                        </p>
+                    </div>
+                    <div class="col-lg-4 text-lg-right">
+                        <p class="rights">
+                            &copy; <span class="copyright-year"></span>
+                            <a href="https://ultrathlete.run">ultrathlete.run</a>.
+                            All Rights Reserved.
+                            &nbsp;
+                            <a th:href="@{/privacy}">Privacy Policy</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+    </div><!-- .page -->
+
+    <div class="snackbars" id="form-output-global"></div>
+
+    <!-- JS — loaded by every page -->
+    <script th:src="@{/js/core.min.js}"></script>
+    <script th:src="@{/js/script.js}"></script>
+
+    <!-- Each page can add its own extra JS here -->
+    <th:block layout:fragment="extra-js"></th:block>
+
+</body>
+</html>
