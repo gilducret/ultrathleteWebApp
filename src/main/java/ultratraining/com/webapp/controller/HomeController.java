@@ -51,4 +51,17 @@ public class HomeController {
 
         return "upload";
     }
+
+    @GetMapping("/predict")
+    public String predict(@AuthenticationPrincipal OidcUser oidcUser, Model model) {
+        String displayName = oidcUser.getFullName() != null
+                ? oidcUser.getFullName()
+                : oidcUser.getEmail();
+        model.addAttribute("displayName", displayName);
+
+        UserDto user = userApiClient.findByAuth0Id(oidcUser.getSubject());
+        model.addAttribute("userId", user != null ? user.getId() : 0);
+
+        return "predict";
+    }
 }

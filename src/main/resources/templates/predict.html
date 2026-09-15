@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Predict a Race | Ultrathlete</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+    <!-- Page title -->
+    <section class="parallax-container" style="background:#333; padding:60px 0;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-9 text-center context-dark">
+                    <h2>Predict a Race</h2>
+                    <p class="lead">
+                        Upload your race GPX and get predicted finish times
+                        based on your personal pace model.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-md bg-gray-1">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-10 col-lg-8">
+
+                    <!-- ═══════════════════════════════════════════
+                         UPLOAD FORM
+                    ════════════════════════════════════════════════ -->
+                    <div id="uploadSection"
+                         style="background:#fff; padding:32px;
+                                border-radius:4px;
+                                box-shadow:0 2px 8px rgba(0,0,0,0.08);
+                                margin-bottom:32px;">
+
+                        <h4 style="margin-bottom:24px;">Upload Race GPX</h4>
+
+                        <form id="predictForm">
+
+                            <!-- GPX file -->
+                            <div class="form-group">
+                                <label for="raceFile">Race GPX File</label>
+                                <div class="custom-file">
+                                    <input type="file"
+                                           class="custom-file-input"
+                                           id="raceFile"
+                                           accept=".gpx">
+                                    <label class="custom-file-label" for="raceFile">
+                                        Choose race GPX...
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted mt-2">
+                                    Upload the official race GPX file.
+                                </small>
+                            </div>
+
+                            <!-- Race name -->
+                            <div class="form-group mt-3">
+                                <label for="raceName">Race Name (optional)</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="raceName"
+                                       placeholder="e.g. UTMB 2025">
+                            </div>
+
+                            <!-- Precision selector -->
+                            <div class="form-group mt-3">
+                                <label for="precision">Checkpoint Precision</label>
+                                <select class="form-control" id="precision">
+                                    <option value="1">Every 1 km</option>
+                                    <option value="5" selected>Every 5 km (default)</option>
+                                    <option value="10">Every 10 km</option>
+                                </select>
+                                <small class="form-text text-muted mt-2">
+                                    How often to show predicted times.
+                                    You can change this after generating the prediction.
+                                </small>
+                            </div>
+
+                            <!-- Submit -->
+                            <button type="submit"
+                                    id="predictBtn"
+                                    class="button button-primary button-block button-lg"
+                                    style="margin-top:24px;">
+                                Generate Prediction
+                            </button>
+                        </form>
+
+                        <!-- Progress -->
+                        <div id="progress" style="display:none; margin-top:24px;">
+                            <p style="color:#555;">
+                                Analysing race GPX and generating predictions...
+                            </p>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-animated"
+                                     style="width:100%; background:#5fb458;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error -->
+                        <div id="error" style="display:none; margin-top:24px;"></div>
+
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════
+                         RESULTS — hidden until prediction arrives
+                    ════════════════════════════════════════════════ -->
+                    <div id="resultsSection" style="display:none;">
+
+                        <!-- Header row -->
+                        <div style="display:flex; justify-content:space-between;
+                                    align-items:center; margin-bottom:16px;
+                                    flex-wrap:wrap; gap:12px;">
+                            <h4 id="resultsTitle" style="margin:0;">Prediction Results</h4>
+
+                            <div style="display:flex; gap:12px; align-items:center;">
+                                <!-- Precision change without re-uploading -->
+                                <select class="form-control form-control-sm"
+                                        id="precisionResults"
+                                        style="width:auto;">
+                                    <option value="1">Every 1 km</option>
+                                    <option value="5" selected>Every 5 km</option>
+                                    <option value="10">Every 10 km</option>
+                                </select>
+
+                                <button id="newPrediction"
+                                        class="button button-sm"
+                                        style="border:1px solid #5fb458;
+                                               color:#5fb458;
+                                               background:transparent;
+                                               white-space:nowrap;">
+                                    ← New Prediction
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Summary -->
+                        <div id="summary"
+                             style="background:#f0f7ef;
+                                    border-left:4px solid #5fb458;
+                                    padding:16px; border-radius:2px;
+                                    margin-bottom:24px;">
+                        </div>
+
+                        <!-- Table -->
+                        <div style="background:#fff; border-radius:4px;
+                                    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+                                    overflow-x:auto;">
+                            <table class="table table-hover" style="margin:0;">
+                                <thead style="background:#121F38; color:#fff;">
+                                <tr>
+                                    <th>Point</th>
+                                    <th>D+ (m)</th>
+                                    <th>D- (m)</th>
+                                    <th style="color:#5fb458;">Min Time</th>
+                                    <th style="color:#adc8ff;">Max Time</th>
+                                    <th>Model 2</th>
+                                    <th>Model 3</th>
+                                    <th>Model 4</th>
+                                </tr>
+                                </thead>
+                                <tbody id="predictionsTable">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Row count -->
+                        <p id="rowCount"
+                           style="color:#aaa; font-size:12px;
+                                  text-align:right; margin-top:8px;">
+                        </p>
+
+                        <!-- Back -->
+                        <div class="text-center" style="margin-top:24px;">
+                            <a th:href="@{/dashboard}" style="color:#5fb458;">
+                                ← Back to Dashboard
+                            </a>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════════
+     PAGE JAVASCRIPT
+════════════════════════════════════════════════ -->
+<th:block layout:fragment="extra-js">
+    <script th:inline="javascript">
+        (function () {
+
+            // ── Elements ─────────────────────────────────────────────────────
+            const input          = document.getElementById('raceFile');
+            const fileLabel      = document.querySelector('.custom-file-label');
+            const form           = document.getElementById('predictForm');
+            const predictBtn     = document.getElementById('predictBtn');
+            const progress       = document.getElementById('progress');
+            const errorDiv       = document.getElementById('error');
+            const uploadSec      = document.getElementById('uploadSection');
+            const resultsSec     = document.getElementById('resultsSection');
+            const resultsTitle   = document.getElementById('resultsTitle');
+            const summary        = document.getElementById('summary');
+            const tbody          = document.getElementById('predictionsTable');
+            const rowCount       = document.getElementById('rowCount');
+            const precisionForm  = document.getElementById('precision');
+            const precisionRes   = document.getElementById('precisionResults');
+            const userId         = /*[[${userId}]]*/ 0;
+
+            // All raw segments from server (never filtered)
+            let allSegments = [];
+
+            // ── File picker ───────────────────────────────────────────────────
+            input.addEventListener('change', function () {
+                fileLabel.textContent = this.files[0]?.name ?? 'Choose race GPX...';
+            });
+
+            // ── Form submit ───────────────────────────────────────────────────
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                if (!input.files[0]) {
+                    showError('Please select a GPX file.');
+                    return;
+                }
+
+                predictBtn.disabled    = true;
+                progress.style.display = 'block';
+                errorDiv.style.display = 'none';
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', input.files[0]);
+                    formData.append('userId', userId);
+
+                    const response = await fetch('/api/predict/run', {
+                        method:      'POST',
+                        body:        formData,
+                        credentials: 'include',
+                    });
+
+                    if (response.status === 412) {
+                        showError('No pace model found. Please upload reference runs first.');
+                        return;
+                    }
+                    if (response.status === 204) {
+                        showError('No predictions generated. The GPX file may be empty or invalid.');
+                        return;
+                    }
+                    if (!response.ok) {
+                        showError('Prediction failed. Please try again.');
+                        return;
+                    }
+
+                    allSegments = await response.json();
+
+                    // Sync precision dropdowns
+                    precisionRes.value = precisionForm.value;
+
+                    displayResults(input.files[0].name);
+
+                } catch (err) {
+                    showError('Could not reach server: ' + err.message);
+                } finally {
+                    predictBtn.disabled    = false;
+                    progress.style.display = 'none';
+                }
+            });
+
+            // ── Precision change on results page ─────────────────────────────
+            precisionRes.addEventListener('change', function () {
+                if (allSegments.length > 0) {
+                    updateTable();
+                }
+            });
+
+            // ── New prediction button ─────────────────────────────────────────
+            document.getElementById('newPrediction').addEventListener('click', function () {
+                uploadSec.style.display  = 'block';
+                resultsSec.style.display = 'none';
+                form.reset();
+                fileLabel.textContent = 'Choose race GPX...';
+                allSegments = [];
+            });
+
+            // ── Display results ───────────────────────────────────────────────
+            function displayResults(filename) {
+                const raceName = document.getElementById('raceName').value || filename;
+                resultsTitle.textContent = 'Prediction — ' + raceName;
+
+                // Summary uses the last segment (finish)
+                const finish = allSegments[allSegments.length - 1];
+                summary.innerHTML = `
+            <div class="row text-center">
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#5fb458;">
+                        ${finish.distance} km
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Total Distance
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#121F38;">
+                        +${finish.elevationGain} m
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Elevation Gain
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#5fb458;">
+                        ${finish.min}
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Optimistic Finish
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#121F38;">
+                        ${finish.max}
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Realistic Finish
+                    </div>
+                </div>
+            </div>`;
+
+                updateTable();
+
+                uploadSec.style.display  = 'none';
+                resultsSec.style.display = 'block';
+            }
+
+            // ── Update table based on current precision ───────────────────────
+            function updateTable() {
+                const filtered = filterSegments(allSegments);
+                tbody.innerHTML = buildRows(filtered);
+                rowCount.textContent = filtered.length + ' checkpoints shown '
+                    + '(from ' + allSegments.length + ' total segments)';
+            }
+
+            // ── Filter segments by km step ────────────────────────────────────
+            function filterSegments(segments) {
+                const step   = parseInt(precisionRes.value);
+                const stepM  = step * 1000;
+                const minM   = 5000; // never show predictions before 5km
+                let lastIncluded = -stepM;
+                const filtered = [];
+
+                for (const seg of segments) {
+                    const distM = parseFloat(seg.distance) * 1000;
+                    // Skip anything before 5km
+                    if (distM < minM) continue;
+                    if (distM - lastIncluded >= stepM) {
+                        filtered.push(seg);
+                        lastIncluded = distM;
+                    }
+                }
+
+                // Always include finish (last segment)
+                const last = segments[segments.length - 1];
+                if (filtered.length === 0 || filtered[filtered.length - 1] !== last) {
+                    filtered.push(last);
+                }
+
+                return filtered;
+            }
+
+            // ── Build table rows ──────────────────────────────────────────────
+            function buildRows(segments) {
+                const last = segments[segments.length - 1];
+                return segments.map(seg => {
+                    const isLast   = seg === last;
+                    const rowStyle = isLast
+                        ? 'background:#f0f7ef; font-weight:bold;'
+                        : '';
+                    const label = isLast
+                        ? 'Finish (' + seg.distance + ' km)'
+                        : seg.distance + ' km';
+                    return `
+                <tr style="${rowStyle}">
+                    <td>${label}</td>
+                    <td>+${seg.elevationGain}</td>
+                    <td>${seg.elevationLoss}</td>
+                    <td style="color:#5fb458; font-weight:600;">${seg.min}</td>
+                    <td style="color:#121F38; font-weight:600;">${seg.max}</td>
+                    <td>${formatSeconds(seg.duration2)}</td>
+                    <td>${formatSeconds(seg.duration3)}</td>
+                    <td>${formatSeconds(seg.duration4)}</td>
+                </tr>`;
+                }).join('');
+            }
+
+            // ── Helpers ───────────────────────────────────────────────────────
+            function formatSeconds(seconds) {
+                if (!seconds || seconds <= 0) return '--:--:--';
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                return String(h).padStart(2, '0') + ':'
+                    + String(m).padStart(2, '0') + ':'
+                    + String(s).padStart(2, '0');
+            }
+
+            function showError(message) {
+                errorDiv.style.display = 'block';
+                errorDiv.innerHTML = `
+            <div style="background:#fff5f5; border-left:4px solid #f5543f;
+                        padding:16px; border-radius:2px; color:#f5543f;">
+                ✗ ${message}
+            </div>`;
+            }
+
+        })();
+    </script>
+</th:block>
+
+</body>
+</html>
