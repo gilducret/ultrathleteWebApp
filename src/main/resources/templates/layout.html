@@ -94,6 +94,9 @@
                                         <li class="rd-nav-item" sec:authorize="isAuthenticated()">
                                             <a class="rd-nav-link" th:href="@{/predict}">Predict</a>
                                         </li>
+                                        <li class="rd-nav-item" sec:authorize="isAuthenticated()">
+                                            <a class="rd-nav-link" th:href="@{/plan}">Plan a Race</a>
+                                        </li>
 
                                         <!-- Visible only when NOT logged in -->
                                         <li class="rd-nav-item" sec:authorize="!isAuthenticated()">

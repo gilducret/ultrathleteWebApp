@@ -11,10 +11,9 @@
 
 <main layout:fragment="content">
 
-    <!-- ═══════════════════════════════════════════
-         PAGE TITLE BAR
-    ════════════════════════════════════════════════ -->
-    <section class="parallax-container" data-parallax-img="images/single-trip-bg.jpg">
+    <!-- PAGE TITLE BAR -->
+    <section class="parallax-container"
+             data-parallax-img="images/single-trip-bg.jpg">
         <div class="parallax-content breadcrumbs-custom context-dark">
             <div class="container">
                 <div class="row justify-content-center">
@@ -30,61 +29,52 @@
         </div>
     </section>
 
-    <!-- ═══════════════════════════════════════════
-         QUICK ACTIONS
-    ════════════════════════════════════════════════ -->
+    <!-- QUICK ACTIONS -->
     <section class="section section-md bg-gray-1">
         <div class="container">
             <div class="row row-50 justify-content-center">
 
-                <!-- Upload Training -->
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-3">
                     <div class="box-icon box-icon-classic text-center">
                         <span class="icon icon-lg mdi mdi-upload"
                               style="color:#5fb458; font-size:48px;"></span>
-                        <h5 class="offset-top-20">Upload Training Run</h5>
-                        <p>
-                            Add a past training run or race to improve
-                            the accuracy of your pace model.
-                        </p>
+                        <h5 class="offset-top-20">Upload Training</h5>
+                        <p>Add past runs to improve the accuracy of your pace model.</p>
                         <a class="button button-primary offset-top-20"
-                           th:href="@{/upload}">
-                            Upload GPX
-                        </a>
+                           th:href="@{/upload}">Upload GPX</a>
                     </div>
                 </div>
 
-                <!-- Predict a Race -->
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-3">
                     <div class="box-icon box-icon-classic text-center">
                         <span class="icon icon-lg mdi mdi-chart-line"
                               style="color:#5fb458; font-size:48px;"></span>
-                        <h5 class="offset-top-20">Predict a Race</h5>
-                        <p>
-                            Upload a race GPX and get your predicted finish time
-                            and checkpoint splits.
-                        </p>
+                        <h5 class="offset-top-20">Quick Predict</h5>
+                        <p>Upload a race GPX and instantly see predicted times.</p>
                         <a class="button button-primary offset-top-20"
-                           th:href="@{/predict}">
-                            Get Prediction
-                        </a>
+                           th:href="@{/predict}">Get Prediction</a>
                     </div>
                 </div>
 
-                <!-- My Races -->
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="box-icon box-icon-classic text-center">
+                        <span class="icon icon-lg mdi mdi-flag-checkered"
+                              style="color:#5fb458; font-size:48px;"></span>
+                        <h5 class="offset-top-20">Plan a Race</h5>
+                        <p>Define checkpoints and save a plan for live tracking on race day.</p>
+                        <a class="button button-primary offset-top-20"
+                           th:href="@{/plan}">Plan Race</a>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
                     <div class="box-icon box-icon-classic text-center">
                         <span class="icon icon-lg mdi mdi-map-marker"
                               style="color:#5fb458; font-size:48px;"></span>
-                        <h5 class="offset-top-20">My Races</h5>
-                        <p>
-                            View your saved races, past predictions,
-                            and live tracking history.
-                        </p>
-                        <a class="button button-primary offset-top-20"
-                           th:href="@{/races}">
-                            View Races
-                        </a>
+                        <h5 class="offset-top-20">Live Tracking</h5>
+                        <p>Track yourself during a race using the mobile app.</p>
+                        <a class="button button-default-outline offset-top-20"
+                           href="#">Coming soon</a>
                     </div>
                 </div>
 
@@ -92,63 +82,154 @@
         </div>
     </section>
 
-    <!-- ═══════════════════════════════════════════
-         RECENT ACTIVITY
-         This section will be populated from the
-         database once races are saved
-    ════════════════════════════════════════════════ -->
+    <!-- PLANNED RACES -->
     <section class="section section-md bg-white">
         <div class="container">
-            <h4>Recent Activity</h4>
-            <hr>
 
-            <!-- Empty state — shown when no races uploaded yet -->
-            <div class="text-center offset-top-30 offset-bottom-30"
-                 th:if="${races == null or races.isEmpty()}">
-                <span class="mdi mdi-run"
-                      style="font-size:64px; color:#dee2e6;"></span>
-                <p class="text-muted offset-top-20">
-                    No races yet. Upload your first GPX file to get started.
-                </p>
-                <a class="button button-primary"
-                   th:href="@{/upload}">
-                    Upload your first run
-                </a>
+            <div style="display:flex; justify-content:space-between;
+                        align-items:center; margin-bottom:20px;
+                        flex-wrap:wrap; gap:12px;">
+                <h4 style="margin:0;">My Planned Races</h4>
+                <a class="button button-sm button-primary"
+                   th:href="@{/plan}">+ Plan a new race</a>
             </div>
 
-            <!-- Race list — shown when races exist -->
-            <div th:if="${races != null and !races.isEmpty()}">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Race</th>
-                            <th>Date</th>
-                            <th>Distance</th>
-                            <th>Predicted time</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="race : ${races}">
-                            <td th:text="${race.name}">Race name</td>
-                            <td th:text="${race.date}">Date</td>
-                            <td th:text="${race.distanceKm} + ' km'">Distance</td>
-                            <td th:text="${race.predictedTime}">Time</td>
-                            <td>
-                                <a class="button button-sm button-primary"
-                                   th:href="@{/races/{id}(id=${race.id})}">
-                                    View
-                                </a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <hr style="margin-bottom:24px;">
+
+            <div id="plannedRacesList">
+                <div style="text-align:center; padding:20px; color:#aaa;">
+                    Loading...
+                </div>
             </div>
 
         </div>
     </section>
 
 </main>
+
+<th:block layout:fragment="extra-js">
+    <script th:inline="javascript">
+        (function () {
+
+            const userId    = /*[[${userId}]]*/ 0;
+            const container = document.getElementById('plannedRacesList');
+
+            async function loadRaces() {
+                try {
+                    const response = await fetch(
+                        '/races/api/user/' + userId,
+                        { credentials: 'include' }
+                    );
+                    if (!response.ok) {
+                        showEmpty('Could not load races. Please refresh the page.');
+                        return;
+                    }
+                    const races = await response.json();
+                    render(races);
+                } catch (e) {
+                    showEmpty('Could not reach server: ' + e.message);
+                }
+            }
+
+            function render(races) {
+                if (!races || races.length === 0) {
+                    showEmpty(null);
+                    return;
+                }
+                container.innerHTML = races.map(race => `
+            <div style="background:#f8f9fa; border-radius:8px;
+                        padding:16px 20px; margin-bottom:12px;
+                        display:flex; justify-content:space-between;
+                        align-items:center; flex-wrap:wrap; gap:12px;
+                        border-left:3px solid #5fb458;">
+                <div>
+                    <strong style="font-size:16px; color:#121F38;">
+                        ${escapeHtml(race.name || 'Unnamed Race')}
+                    </strong>
+                    <div style="color:#888; font-size:13px; margin-top:4px;">
+                        ${race.segmentCount} checkpoint${race.segmentCount !== 1 ? 's' : ''}
+                        &nbsp;&middot;&nbsp;
+                        ${race.totalDistanceM > 0
+                    ? (race.totalDistanceM / 1000).toFixed(1) + ' km'
+                    : '&mdash;'}
+                        &nbsp;&middot;&nbsp;
+                        ${race.date
+                    ? new Date(race.date).toLocaleDateString()
+                    : '&mdash;'}
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <a class="button button-sm button-primary"
+                       href="/races/${race.id}">View Prediction</a>
+                    <button onclick="deleteRace(${race.id}, this)"
+                            class="button button-sm"
+                            style="border:1px solid #f5543f;
+                                   color:#f5543f; background:transparent;">
+                        Delete
+                    </button>
+                </div>
+            </div>`).join('');
+            }
+
+            function showEmpty(errorMsg) {
+                if (errorMsg) {
+                    container.innerHTML = `
+                <div style="background:#fff5f5; border-left:4px solid #f5543f;
+                            padding:14px; border-radius:2px; color:#f5543f;">
+                    &#x2715; ${errorMsg}
+                </div>`;
+                    return;
+                }
+                container.innerHTML = `
+            <div style="text-align:center; padding:48px 20px; color:#aaa;">
+                <span class="mdi mdi-flag-checkered"
+                      style="font-size:56px; display:block;
+                             margin-bottom:16px; color:#dee2e6;"></span>
+                <p style="font-size:16px; margin-bottom:20px;">
+                    No planned races yet.
+                </p>
+                <a class="button button-primary" href="/plan">
+                    Plan your first race
+                </a>
+            </div>`;
+            }
+
+            window.deleteRace = async function (id, btn) {
+                if (!confirm('Delete this planned race? This cannot be undone.')) return;
+                btn.disabled    = true;
+                btn.textContent = '...';
+                try {
+                    const response = await fetch('/races/api/' + id, {
+                        method:      'DELETE',
+                        credentials: 'include',
+                    });
+                    if (response.ok) {
+                        loadRaces();
+                    } else {
+                        alert('Could not delete. Please try again.');
+                        btn.disabled    = false;
+                        btn.textContent = 'Delete';
+                    }
+                } catch (e) {
+                    alert('Could not reach server: ' + e.message);
+                    btn.disabled    = false;
+                    btn.textContent = 'Delete';
+                }
+            };
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+            loadRaces();
+
+        })();
+    </script>
+</th:block>
 
 </body>
 </html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Race Prediction | Ultrathlete</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+    <!-- Page title -->
+    <section class="parallax-container"
+             style="background:#333; padding:60px 0;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-9 text-center context-dark">
+                    <h2 id="raceTitle">Loading...</h2>
+                    <p class="lead" id="raceSubtitle"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-md bg-gray-1">
+        <div class="container">
+
+            <!-- Loading -->
+            <div id="loading" style="text-align:center; padding:40px;">
+                <p style="color:#888;">Loading prediction...</p>
+            </div>
+
+            <!-- Error -->
+            <div id="error" style="display:none;"></div>
+
+            <!-- Content -->
+            <div id="content" style="display:none;">
+
+                <!-- Summary bar -->
+                <div id="summary"
+                     style="background:#f0f7ef;
+                            border-left:4px solid #5fb458;
+                            padding:16px; border-radius:2px;
+                            margin-bottom:24px;">
+                </div>
+
+                <!-- Prediction table -->
+                <div style="background:#fff; border-radius:4px;
+                            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+                            overflow-x:auto; margin-bottom:24px;">
+                    <table class="table table-hover" style="margin:0;">
+                        <thead style="background:#121F38; color:#fff;">
+                        <tr>
+                            <th>Checkpoint</th>
+                            <th>Distance</th>
+                            <th>Section time (min)</th>
+                            <th style="color:#5fb458;">
+                                Cumulative (optimistic)
+                            </th>
+                            <th style="color:#adc8ff;">
+                                Cumulative (realistic)
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody id="predictionTable">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Back -->
+                <div style="display:flex; justify-content:space-between;
+                            align-items:center; flex-wrap:wrap; gap:12px;">
+                    <a href="/dashboard"
+                       style="color:#5fb458;">
+                        ← Back to Dashboard
+                    </a>
+                    <a th:href="@{/plan}"
+                       class="button button-sm"
+                       style="border:1px solid #5fb458; color:#5fb458;
+                              background:transparent;">
+                        Plan another race
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<th:block layout:fragment="extra-js">
+    <script th:inline="javascript">
+        (function() {
+
+            const sessionId = /*[[${sessionId}]]*/ 0;
+
+            // ── Load session from server ──────────────────────────────────
+            async function load() {
+                try {
+                    const response = await fetch('/races/api/' + sessionId, {
+                        credentials: 'include'
+                    });
+
+                    if (!response.ok) {
+                        showError('Could not load race prediction.');
+                        return;
+                    }
+
+                    const session = await response.json();
+                    render(session);
+
+                } catch(e) {
+                    showError('Could not reach server: ' + e.message);
+                }
+            }
+
+            // ── Render the prediction ─────────────────────────────────────
+            function render(session) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
+                // Title
+                document.getElementById('raceTitle').textContent =
+                    session.raceName || 'Race Prediction';
+
+                const segments = session.segments || [];
+                const lastSeg  = segments[segments.length - 1];
+
+                // Subtitle
+                document.getElementById('raceSubtitle').textContent =
+                    segments.length + ' checkpoints · '
+                    + (lastSeg
+                        ? (lastSeg.distanceFromStartM / 1000).toFixed(1) + ' km'
+                        : '');
+
+                // Summary — finish times
+                const totalMin = lastSeg
+                    ? Math.round(Math.min(
+                        lastSeg.runningTimeModel2,
+                        lastSeg.runningTimeModel3) / 60)
+                    : 0;
+                const totalMax = lastSeg
+                    ? Math.round(Math.max(
+                        lastSeg.runningTimeModel2,
+                        lastSeg.runningTimeModel3) / 60)
+                    : 0;
+
+                // Note: runningTimeModel2/3 per segment = section time only
+                // We need cumulative sums for the table
+                let cumMin = 0;
+                let cumMax = 0;
+
+                // Build summary using cumulative finish time
+                let finCumMin = 0;
+                let finCumMax = 0;
+                for (const seg of segments) {
+                    finCumMin += seg.runningTimeModel2;
+                    finCumMax += seg.runningTimeModel3;
+                }
+                // min = whichever model is faster overall
+                const finMin = Math.min(finCumMin, finCumMax);
+                const finMax = Math.max(finCumMin, finCumMax);
+
+                document.getElementById('summary').innerHTML = `
+            <div class="row text-center">
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#5fb458;">
+                        ${lastSeg
+                    ? (lastSeg.distanceFromStartM/1000).toFixed(1)
+                    : '—'} km
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Total Distance
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#121F38;">
+                        ${segments.length}
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Checkpoints
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#5fb458;">
+                        ${formatDuration(finMin)}
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Optimistic Finish
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <strong style="font-size:20px; color:#121F38;">
+                        ${formatDuration(finMax)}
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Realistic Finish
+                    </div>
+                </div>
+            </div>`;
+
+                // ── Build prediction table ────────────────────────────────
+                // Determine which model is consistently faster
+                // (use model2 as "optimistic", model3 as "realistic"
+                //  unless model3 is consistently faster — then swap)
+                let totalM2 = 0;
+                let totalM3 = 0;
+                for (const seg of segments) {
+                    totalM2 += seg.runningTimeModel2;
+                    totalM3 += seg.runningTimeModel3;
+                }
+                // optimistic = the faster model overall
+                const useM2asMin = totalM2 <= totalM3;
+
+                let cumOptimistic = 0;
+                let cumRealistic  = 0;
+                const tbody = document.getElementById('predictionTable');
+
+                tbody.innerHTML = segments.map((seg, idx) => {
+                    const isLast = idx === segments.length - 1;
+
+                    const sectionMin = useM2asMin
+                        ? seg.runningTimeModel2
+                        : seg.runningTimeModel3;
+                    const sectionMax = useM2asMin
+                        ? seg.runningTimeModel3
+                        : seg.runningTimeModel2;
+
+                    cumOptimistic += sectionMin;
+                    cumRealistic  += sectionMax;
+
+                    const sectionMinutes = Math.round(sectionMin / 60);
+
+                    const rowStyle = isLast
+                        ? 'background:#f0f7ef; font-weight:bold;'
+                        : '';
+
+                    return `
+                <tr style="${rowStyle}">
+                    <td>${seg.name}</td>
+                    <td>${(seg.distanceFromStartM / 1000).toFixed(1)} km</td>
+                    <td style="color:#888;">${sectionMinutes} min</td>
+                    <td style="color:#5fb458; font-weight:600;">
+                        ${formatDuration(cumOptimistic)}
+                    </td>
+                    <td style="color:#121F38; font-weight:600;">
+                        ${formatDuration(cumRealistic)}
+                    </td>
+                </tr>`;
+                }).join('');
+            }
+
+            // ── Helpers ───────────────────────────────────────────────────
+            function formatDuration(seconds) {
+                if (!seconds || seconds <= 0) return '--:--:--';
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                return `${String(h).padStart(2,'0')}h`
+                    + `${String(m).padStart(2,'0')}m`
+                    + `${String(s).padStart(2,'0')}s`;
+            }
+
+            function showError(msg) {
+                document.getElementById('loading').style.display = 'none';
+                const el = document.getElementById('error');
+                el.style.display = 'block';
+                el.innerHTML = `
+            <div style="background:#fff5f5; border-left:4px solid #f5543f;
+                        padding:16px; border-radius:2px; color:#f5543f;">
+                ✗ ${msg}
+            </div>`;
+            }
+
+            load();
+
+        })();
+    </script>
+</th:block>
+
+</body>
+</html>

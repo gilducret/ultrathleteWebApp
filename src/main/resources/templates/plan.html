@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Plan a Race | Ultrathlete</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+    <!-- Page title -->
+    <section class="parallax-container" style="background:#333; padding:60px 0;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-9 text-center context-dark">
+                    <h2>Plan a Race</h2>
+                    <p class="lead">
+                        Upload your race GPX, define your checkpoints,
+                        and get predicted arrival times.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-md bg-gray-1">
+        <div class="container">
+
+            <!-- ═══════════════════════════════════════════
+                 STEP 1 — Upload GPX
+            ════════════════════════════════════════════════ -->
+            <div id="step1">
+                <div style="background:#fff; padding:32px; border-radius:4px;
+                            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+                            max-width:600px; margin:0 auto;">
+
+                    <h4 style="margin-bottom:8px;">Step 1 — Upload Race GPX</h4>
+                    <p style="color:#888; margin-bottom:24px;">
+                        We'll detect peaks and waypoints automatically.
+                    </p>
+
+                    <form id="uploadForm">
+                        <div class="form-group">
+                            <label for="gpxFile">Race GPX File</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input"
+                                       id="gpxFile" accept=".gpx">
+                                <label class="custom-file-label" for="gpxFile">
+                                    Choose race GPX...
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label for="raceName">Race Name</label>
+                            <input type="text" class="form-control"
+                                   id="raceName"
+                                   placeholder="e.g. CCC 2025">
+                        </div>
+
+                        <button type="submit" id="analyseBtn"
+                                class="button button-primary button-block button-lg"
+                                style="margin-top:24px;">
+                            Analyse GPX
+                        </button>
+                    </form>
+
+                    <div id="analyseProgress"
+                         style="display:none; margin-top:16px;">
+                        <p style="color:#555;">Analysing GPX file...</p>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-animated"
+                                 style="width:100%; background:#5fb458;"></div>
+                        </div>
+                    </div>
+
+                    <div id="analyseError"
+                         style="display:none; margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════
+                 STEP 2 — Elevation chart + checkpoints
+            ════════════════════════════════════════════════ -->
+            <div id="step2" style="display:none;">
+
+                <!-- Race summary -->
+                <div id="raceSummary"
+                     style="background:#f0f7ef; border-left:4px solid #5fb458;
+                            padding:16px; border-radius:2px; margin-bottom:24px;">
+                </div>
+
+                <!-- Elevation chart -->
+                <div style="background:#fff; border-radius:4px;
+                            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+                            padding:24px; margin-bottom:24px;">
+                    <h5 style="margin-bottom:16px;">Elevation Profile</h5>
+                    <div style="overflow-x:auto;">
+                        <svg id="elevationChart" width="900" height="200"
+                             style="min-width:600px; display:block;">
+                        </svg>
+                    </div>
+                    <div style="display:flex; gap:20px; margin-top:10px;
+                                font-size:12px; color:#888; flex-wrap:wrap;">
+                        <span>▲ Peak (auto-detected)</span>
+                        <span>⚑ Waypoint (from GPX)</span>
+                        <span>📍 Custom</span>
+                        <span style="color:#5fb458;">
+                            <b>|</b> Checkpoint line on chart
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Checkpoint editor -->
+                <div style="background:#fff; border-radius:4px;
+                            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+                            padding:24px; margin-bottom:24px;">
+
+                    <h5 style="margin-bottom:4px;">Checkpoints</h5>
+                    <p style="color:#888; font-size:13px; margin-bottom:16px;">
+                        Edit names, remove unwanted ones, or add your own by distance.
+                    </p>
+
+                    <div style="overflow-x:auto;">
+                        <table class="table" style="margin-bottom:16px;">
+                            <thead style="background:#f8f9fa;">
+                            <tr>
+                                <th>Name</th>
+                                <th>Distance (km)</th>
+                                <th>Elevation (m)</th>
+                                <th>Type</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="checkpointTable">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add custom checkpoint -->
+                    <div style="display:flex; gap:12px; align-items:flex-end;
+                                flex-wrap:wrap; padding-top:16px;
+                                border-top:1px solid #eee;">
+                        <div class="form-group" style="margin:0; flex:2; min-width:160px;">
+                            <label style="font-size:13px; margin-bottom:4px;">Name</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="newCpName"
+                                   placeholder="e.g. Aid Station 1">
+                        </div>
+                        <div class="form-group" style="margin:0; flex:1; min-width:120px;">
+                            <label style="font-size:13px; margin-bottom:4px;">
+                                Distance (km)
+                            </label>
+                            <input type="number" class="form-control form-control-sm"
+                                   id="newCpDistance"
+                                   step="0.1" min="0.1"
+                                   placeholder="e.g. 22.5">
+                        </div>
+                        <button id="addCpBtn"
+                                class="button button-sm"
+                                style="border:1px solid #5fb458; color:#5fb458;
+                                       background:transparent; padding:6px 16px;
+                                       white-space:nowrap; height:38px;">
+                            + Add Checkpoint
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div style="display:flex; justify-content:space-between;
+                            align-items:center; flex-wrap:wrap; gap:12px;">
+                    <button id="backBtn"
+                            class="button button-sm"
+                            style="border:1px solid #aaa; color:#aaa;
+                                   background:transparent;">
+                        ← Upload different GPX
+                    </button>
+                    <button id="generateBtn"
+                            class="button button-lg button-primary">
+                        Generate Race Plan →
+                    </button>
+                </div>
+
+                <div id="generateProgress"
+                     style="display:none; margin-top:16px;">
+                    <p style="color:#555;">Generating predictions...</p>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-animated"
+                             style="width:100%; background:#5fb458;"></div>
+                    </div>
+                </div>
+
+                <div id="generateError"
+                     style="display:none; margin-top:16px;"></div>
+
+            </div><!-- end step2 -->
+
+        </div>
+    </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════════
+     PAGE JAVASCRIPT
+════════════════════════════════════════════════ -->
+<th:block layout:fragment="extra-js">
+    <script th:inline="javascript">
+        (function () {
+
+            // ── State ─────────────────────────────────────────────────────
+            let raceData    = null;   // full analysis JSON from server
+            let checkpoints = [];     // current checkpoint list (editable)
+            let sessionId   = null;   // PredictedSession id from analyse step
+            const userId    = /*[[${userId}]]*/ 0;
+
+            // ── DOM elements ──────────────────────────────────────────────
+            const step1           = document.getElementById('step1');
+            const step2           = document.getElementById('step2');
+            const gpxInput        = document.getElementById('gpxFile');
+            const fileLabel       = document.querySelector('.custom-file-label');
+            const uploadForm      = document.getElementById('uploadForm');
+            const analyseBtn      = document.getElementById('analyseBtn');
+            const analyseProgress = document.getElementById('analyseProgress');
+            const analyseError    = document.getElementById('analyseError');
+            const raceSummary     = document.getElementById('raceSummary');
+            const cpTable         = document.getElementById('checkpointTable');
+            const newCpName       = document.getElementById('newCpName');
+            const newCpDistance   = document.getElementById('newCpDistance');
+            const addCpBtn        = document.getElementById('addCpBtn');
+            const backBtn         = document.getElementById('backBtn');
+            const generateBtn     = document.getElementById('generateBtn');
+            const generateProgress = document.getElementById('generateProgress');
+            const generateError   = document.getElementById('generateError');
+
+            // ── File picker label ─────────────────────────────────────────
+            gpxInput.addEventListener('change', function () {
+                fileLabel.textContent = this.files[0]?.name ?? 'Choose race GPX...';
+            });
+
+            // ── Step 1: Analyse GPX ───────────────────────────────────────
+            uploadForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                if (!gpxInput.files[0]) {
+                    showError(analyseError, 'Please select a GPX file.');
+                    return;
+                }
+
+                analyseBtn.disabled           = true;
+                analyseProgress.style.display = 'block';
+                analyseError.style.display    = 'none';
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', gpxInput.files[0]);
+
+                    const response = await fetch('/plan/analyse', {
+                        method:      'POST',
+                        body:        formData,
+                        credentials: 'include',
+                    });
+
+                    if (!response.ok) {
+                        showError(analyseError,
+                            'Analysis failed. Please check your GPX file and try again.');
+                        return;
+                    }
+
+                    // Response: { sessionId: 42, analysis: { ... } }
+                    const result = await response.json();
+                    sessionId    = result.sessionId;
+                    raceData     = result.analysis;
+
+                    // Build initial checkpoint list from suggestions
+                    checkpoints = raceData.suggestedCheckpoints.map(cp => ({
+                        name:       cp.name,
+                        distanceKm: parseFloat((cp.distanceM / 1000).toFixed(2)),
+                        elevationM: cp.elevationM,
+                        type:       cp.type,
+                    }));
+
+                    // Always add finish line at the end
+                    checkpoints.push({
+                        name:       'Finish',
+                        distanceKm: parseFloat((raceData.totalDistanceM / 1000).toFixed(2)),
+                        elevationM: 0,
+                        type:       'finish',
+                    });
+
+                    renderSummary();
+                    renderChart();
+                    renderCheckpoints();
+
+                    step1.style.display = 'none';
+                    step2.style.display = 'block';
+
+                } catch (err) {
+                    showError(analyseError,
+                        'Could not reach server: ' + err.message);
+                } finally {
+                    analyseBtn.disabled           = false;
+                    analyseProgress.style.display = 'none';
+                }
+            });
+
+            // ── Render race summary ───────────────────────────────────────
+            function renderSummary() {
+                const name   = document.getElementById('raceName').value
+                    || gpxInput.files[0]?.name || 'Race';
+                const distKm = (raceData.totalDistanceM / 1000).toFixed(1);
+                raceSummary.innerHTML = `
+            <div class="row text-center">
+                <div class="col-4">
+                    <strong style="font-size:20px; color:#5fb458;">
+                        ${distKm} km
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Total Distance
+                    </div>
+                </div>
+                <div class="col-4">
+                    <strong style="font-size:20px; color:#121F38;">
+                        +${raceData.totalElevationGain} m
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Elevation Gain
+                    </div>
+                </div>
+                <div class="col-4">
+                    <strong style="font-size:20px; color:#121F38;">
+                        -${raceData.totalElevationLoss} m
+                    </strong>
+                    <div style="color:#555; font-size:12px; margin-top:4px;">
+                        Elevation Loss
+                    </div>
+                </div>
+            </div>`;
+            }
+
+            // ── Render elevation SVG chart ────────────────────────────────
+            function renderChart() {
+                const svg   = document.getElementById('elevationChart');
+                const W     = 900;
+                const H     = 200;
+                const padL  = 52;
+                const padR  = 20;
+                const padT  = 24;
+                const padB  = 30;
+
+                const profile  = raceData.elevationProfile;
+                const maxDist  = raceData.totalDistanceM;
+                const elevs    = profile.map(p => p.elevationM);
+                const minElev  = Math.min(...elevs);
+                const maxElev  = Math.max(...elevs);
+                const elevRange = maxElev - minElev || 1;
+
+                const scaleX = d =>
+                    padL + (d / maxDist) * (W - padL - padR);
+                const scaleY = e =>
+                    padT + (1 - (e - minElev) / elevRange) * (H - padT - padB);
+
+                // Polyline points
+                const points = profile
+                    .map(p => `${scaleX(p.distanceM)},${scaleY(p.elevationM)}`)
+                    .join(' ');
+
+                // Fill polygon
+                const first   = profile[0];
+                const lastPt  = profile[profile.length - 1];
+                const polygon = `${scaleX(first.distanceM)},${H - padB} `
+                    + points
+                    + ` ${scaleX(lastPt.distanceM)},${H - padB}`;
+
+                // Checkpoint vertical lines (skip finish — it overlaps the axis)
+                const cpLines = checkpoints
+                    .filter(cp => cp.type !== 'finish')
+                    .map(cp => {
+                        const x = scaleX(cp.distanceKm * 1000);
+                        const shortName = cp.name.length > 12
+                            ? cp.name.substring(0, 11) + '…'
+                            : cp.name;
+                        return `
+                    <line x1="${x}" y1="${padT}"
+                          x2="${x}" y2="${H - padB}"
+                          stroke="#5fb458" stroke-width="1.5"
+                          stroke-dasharray="4,3" opacity="0.9"/>
+                    <text x="${x}" y="${padT - 5}"
+                          font-size="9" fill="#5fb458"
+                          text-anchor="middle">${shortName}</text>`;
+                    }).join('');
+
+                // Y axis labels
+                const yLabels = [minElev,
+                    Math.round((minElev + maxElev) / 2),
+                    maxElev]
+                    .map(e => `
+                <text x="${padL - 5}" y="${scaleY(e) + 4}"
+                      font-size="10" fill="#888"
+                      text-anchor="end">${Math.round(e)}m</text>`)
+                    .join('');
+
+                // X axis labels every 10km
+                const xLabels = [];
+                for (let km = 0; km <= Math.ceil(maxDist / 1000); km += 10) {
+                    xLabels.push(`
+                <text x="${scaleX(km * 1000)}" y="${H - padB + 16}"
+                      font-size="10" fill="#888"
+                      text-anchor="middle">${km}km</text>`);
+                }
+
+                svg.innerHTML = `
+            ${yLabels}
+            ${xLabels.join('')}
+            <line x1="${padL}" y1="${padT}"
+                  x2="${padL}" y2="${H - padB}"
+                  stroke="#ddd"/>
+            <line x1="${padL}" y1="${H - padB}"
+                  x2="${W - padR}" y2="${H - padB}"
+                  stroke="#ddd"/>
+            <polygon points="${polygon}"
+                     fill="#5fb458" opacity="0.15"/>
+            <polyline points="${points}"
+                      fill="none" stroke="#5fb458"
+                      stroke-width="2"/>
+            ${cpLines}`;
+            }
+
+            // ── Render checkpoint table ───────────────────────────────────
+            function renderCheckpoints() {
+                cpTable.innerHTML = checkpoints.map((cp, idx) => {
+                    const isFinish   = cp.type === 'finish';
+                    const typeLabel  = cp.type === 'peak'     ? '▲ Peak'
+                        : cp.type === 'waypoint' ? '⚑ Waypoint'
+                            : cp.type === 'finish'   ? '🏁 Finish'
+                                : '📍 Custom';
+                    const elevDisplay = cp.elevationM
+                        ? cp.elevationM + ' m' : '—';
+
+                    return `
+                <tr>
+                    <td>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               value="${escapeHtml(cp.name)}"
+                               onchange="window._updateCp(${idx}, 'name', this.value)">
+                    </td>
+                    <td>
+                        <input type="number"
+                               class="form-control form-control-sm"
+                               value="${cp.distanceKm}"
+                               step="0.1" min="0.1"
+                               ${isFinish ? 'readonly style="background:#f8f9fa;"' : ''}
+                               onchange="window._updateCp(${idx}, 'distanceKm',
+                                   parseFloat(this.value))">
+                    </td>
+                    <td style="color:#888; vertical-align:middle;">
+                        ${elevDisplay}
+                    </td>
+                    <td style="font-size:12px; color:#888;
+                               vertical-align:middle;">
+                        ${typeLabel}
+                    </td>
+                    <td style="vertical-align:middle;">
+                        ${!isFinish
+                        ? `<button onclick="window._removeCp(${idx})"
+                                       title="Remove"
+                                       style="background:none; border:none;
+                                              color:#f5543f; cursor:pointer;
+                                              font-size:18px; line-height:1;
+                                              padding:0 4px;">✕</button>`
+                        : ''}
+                    </td>
+                </tr>`;
+                }).join('');
+            }
+
+            // ── Checkpoint actions (exposed to inline onclick) ────────────
+            window._updateCp = function (idx, field, value) {
+                checkpoints[idx][field] = value;
+                // Re-sort by distance (except finish stays last)
+                const finish = checkpoints.find(cp => cp.type === 'finish');
+                const rest   = checkpoints.filter(cp => cp.type !== 'finish');
+                rest.sort((a, b) => a.distanceKm - b.distanceKm);
+                checkpoints = finish ? [...rest, finish] : rest;
+                renderCheckpoints();
+                renderChart();
+            };
+
+            window._removeCp = function (idx) {
+                checkpoints.splice(idx, 1);
+                renderCheckpoints();
+                renderChart();
+            };
+
+            // ── Add custom checkpoint ─────────────────────────────────────
+            addCpBtn.addEventListener('click', function () {
+                const name = newCpName.value.trim();
+                const dist = parseFloat(newCpDistance.value);
+
+                if (!name) {
+                    alert('Please enter a checkpoint name.');
+                    return;
+                }
+                if (isNaN(dist) || dist <= 0) {
+                    alert('Please enter a valid distance in km (e.g. 22.5).');
+                    return;
+                }
+
+                const maxKm = raceData.totalDistanceM / 1000;
+                if (dist >= maxKm) {
+                    alert(`Distance must be less than ${maxKm.toFixed(1)} km.`);
+                    return;
+                }
+
+                // Insert before finish, sorted by distance
+                const finish = checkpoints.find(cp => cp.type === 'finish');
+                const rest   = checkpoints.filter(cp => cp.type !== 'finish');
+                rest.push({
+                    name:       name,
+                    distanceKm: dist,
+                    elevationM: 0,
+                    type:       'custom',
+                });
+                rest.sort((a, b) => a.distanceKm - b.distanceKm);
+                checkpoints = finish ? [...rest, finish] : rest;
+
+                newCpName.value     = '';
+                newCpDistance.value = '';
+                renderCheckpoints();
+                renderChart();
+            });
+
+            // ── Back button ───────────────────────────────────────────────
+            backBtn.addEventListener('click', function () {
+                step2.style.display = 'none';
+                step1.style.display = 'block';
+                raceData    = null;
+                checkpoints = [];
+                sessionId   = null;
+            });
+
+            // ── Generate Race Plan ────────────────────────────────────────
+            generateBtn.addEventListener('click', async function () {
+
+                if (!sessionId) {
+                    showError(generateError,
+                        'Session lost. Please upload the GPX again.');
+                    return;
+                }
+
+                const nonFinish = checkpoints.filter(cp => cp.type !== 'finish');
+                if (nonFinish.length < 1) {
+                    alert('Please add at least one checkpoint before the finish.');
+                    return;
+                }
+
+                generateBtn.disabled           = true;
+                generateProgress.style.display = 'block';
+                generateError.style.display    = 'none';
+
+                try {
+                    const raceName = document.getElementById('raceName').value.trim()
+                        || gpxInput.files[0]?.name
+                        || 'Race';
+
+                    const payload = {
+                        sessionId:   sessionId,
+                        raceName:    raceName,
+                        checkpoints: checkpoints.map(cp => ({
+                            name:       cp.name,
+                            distanceKm: cp.distanceKm,
+                        })),
+                    };
+
+                    const response = await fetch('/plan/generate', {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify(payload),
+                        credentials: 'include',
+                    });
+
+                    if (response.ok) {
+                        const newSessionId = await response.text();
+                        // Redirect to dashboard with success message
+                        window.location.href =
+                            '/dashboard?planned=' + newSessionId;
+                    } else {
+                        const msg = await response.text();
+                        showError(generateError,
+                            'Generation failed: ' + (msg || 'Please try again.'));
+                    }
+
+                } catch (err) {
+                    showError(generateError,
+                        'Could not reach server: ' + err.message);
+                } finally {
+                    generateBtn.disabled           = false;
+                    generateProgress.style.display = 'none';
+                }
+            });
+
+            // ── Helpers ───────────────────────────────────────────────────
+            function showError(el, msg) {
+                el.style.display = 'block';
+                el.innerHTML = `
+            <div style="background:#fff5f5; border-left:4px solid #f5543f;
+                        padding:14px; border-radius:2px; color:#f5543f;">
+                ✗ ${msg}
+            </div>`;
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+        })();
+    </script>
+</th:block>
+
+</body>
+</html>
