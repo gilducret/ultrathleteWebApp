@@ -10,7 +10,7 @@
 
 <main layout:fragment="content">
 
-    <!-- Page title bar -->
+    <!-- Page title -->
     <section class="parallax-container" style="background:#333; padding:60px 0;">
         <div class="container">
             <div class="row justify-content-center">
@@ -25,27 +25,32 @@
         </div>
     </section>
 
-    <!-- Upload form -->
     <section class="section section-md bg-gray-1">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-md-8 col-lg-6">
 
                     <!-- Info box -->
-                    <div class="alert" style="background:#f0f7ef; border-left:4px solid #5fb458; padding:16px; margin-bottom:24px;">
-                        <h6 style="color:#5fb458;">What are reference runs?</h6>
-                        <p style="margin:0; color:#555;">
+                    <div style="background:#f0f7ef; border-left:4px solid #5fb458;
+                                padding:16px; border-radius:2px; margin-bottom:24px;">
+                        <h6 style="color:#5fb458; margin-bottom:6px;">
+                            What are reference runs?
+                        </h6>
+                        <p style="margin:0; color:#555; font-size:14px;">
                             These are GPX files from your past training runs or races.
                             The more you upload, the more accurate your predictions will be.
-                            Upload at least 5-10 runs for best results.
+                            Upload at least 5–10 runs covering varied terrain for best results.
                         </p>
                     </div>
 
                     <!-- Upload form -->
-                    <div style="background:#fff; padding:32px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                    <div style="background:#fff; padding:32px; border-radius:4px;
+                                box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
                         <h4 style="margin-bottom:24px;">Select GPX Files</h4>
 
                         <form id="uploadForm">
+
                             <!-- File input -->
                             <div class="form-group">
                                 <label for="gpxFiles">GPX Files</label>
@@ -55,22 +60,29 @@
                                            id="gpxFiles"
                                            accept=".gpx"
                                            multiple>
-                                    <label class="custom-file-label" for="gpxFiles">
+                                    <label class="custom-file-label"
+                                           for="gpxFiles">
                                         Choose files...
                                     </label>
                                 </div>
                                 <small class="form-text text-muted mt-2">
-                                    Select one or more .gpx files. You can upload more later.
+                                    Select one or more .gpx files.
+                                    You can upload more runs at any time.
                                 </small>
                             </div>
 
                             <!-- Selected files list -->
-                            <div id="fileList" style="display:none; margin:16px 0;">
-                                <h6>Selected files:</h6>
-                                <ul id="fileNames" style="color:#555; padding-left:20px;"></ul>
+                            <div id="fileList"
+                                 style="display:none; margin:16px 0;">
+                                <h6 id="fileCount"
+                                    style="color:#555; margin-bottom:8px;"></h6>
+                                <ul id="fileNames"
+                                    style="color:#777; padding-left:20px;
+                                           font-size:13px; margin:0;">
+                                </ul>
                             </div>
 
-                            <!-- Submit button -->
+                            <!-- Submit -->
                             <button type="submit"
                                     id="uploadBtn"
                                     class="button button-primary button-block button-lg"
@@ -80,9 +92,10 @@
                         </form>
 
                         <!-- Progress -->
-                        <div id="progress" style="display:none; margin-top:24px;">
+                        <div id="progress"
+                             style="display:none; margin-top:24px;">
                             <p style="color:#555;">
-                                <span id="progressText">Uploading files...</span>
+                                Uploading files and rebuilding pace model...
                             </p>
                             <div class="progress">
                                 <div class="progress-bar progress-bar-animated"
@@ -92,10 +105,13 @@
                         </div>
 
                         <!-- Result -->
-                        <div id="result" style="display:none; margin-top:24px;"></div>
+                        <div id="result"
+                             style="display:none; margin-top:24px;">
+                        </div>
+
                     </div>
 
-                    <!-- Back to dashboard -->
+                    <!-- Back -->
                     <div class="text-center" style="margin-top:24px;">
                         <a th:href="@{/dashboard}" style="color:#5fb458;">
                             ← Back to Dashboard
@@ -109,98 +125,190 @@
 
 </main>
 
-<!-- Extra JS for this page only -->
 <th:block layout:fragment="extra-js">
-    <script th:inline="javascript">
-        (function() {
+    <script>
+        (function () {
 
-            // ── File picker — show selected file names ────────────────────────
             const input     = document.getElementById('gpxFiles');
             const fileList  = document.getElementById('fileList');
+            const fileCount = document.getElementById('fileCount');
             const fileNames = document.getElementById('fileNames');
             const label     = document.querySelector('.custom-file-label');
+            const form      = document.getElementById('uploadForm');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progress  = document.getElementById('progress');
+            const result    = document.getElementById('result');
 
-            input.addEventListener('change', function() {
+            // ── File picker ───────────────────────────────────────────────
+            input.addEventListener('change', function () {
                 const files = Array.from(this.files);
                 if (files.length === 0) {
                     fileList.style.display = 'none';
                     label.textContent = 'Choose files...';
                     return;
                 }
+
                 label.textContent = files.length + ' file(s) selected';
-                fileNames.innerHTML = files
-                    .map(f => `<li>${f.name} <small style="color:#aaa;">(${(f.size/1024).toFixed(0)} KB)</small></li>`)
-                    .join('');
+                fileCount.textContent = files.length
+                    + ' file' + (files.length > 1 ? 's' : '') + ' selected:';
+
+                fileNames.innerHTML = files.map(f =>
+                    `<li>${escapeHtml(f.name)}
+                <span style="color:#aaa; font-size:11px;">
+                    (${(f.size / 1024).toFixed(0)} KB)
+                </span>
+            </li>`
+                ).join('');
+
                 fileList.style.display = 'block';
             });
 
-            // ── Form submit ───────────────────────────────────────────────────
-            const form       = document.getElementById('uploadForm');
-            const uploadBtn  = document.getElementById('uploadBtn');
-            const progress   = document.getElementById('progress');
-            const progressTx = document.getElementById('progressText');
-            const result     = document.getElementById('result');
-
-            form.addEventListener('submit', async function(e) {
+            // ── Submit ────────────────────────────────────────────────────
+            form.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
                 const files = input.files;
                 if (files.length === 0) {
-                    showResult('error', 'Please select at least one GPX file.');
+                    showError('Please select at least one GPX file.');
                     return;
                 }
 
-                // Show progress
-                uploadBtn.disabled = true;
+                uploadBtn.disabled     = true;
                 progress.style.display = 'block';
                 result.style.display   = 'none';
-                progressTx.textContent = `Uploading ${files.length} file(s) and building model...`;
 
                 try {
-                    // Build multipart form data
                     const formData = new FormData();
                     for (const file of files) {
                         formData.append('files', file);
                     }
-                    // The userId comes from the session — the server reads it
-                    // from the authenticated principal, not from the form
-                    formData.append('userId', /*[[${userId}]]*/ '0');
 
                     const response = await fetch('/api/reference/upload', {
-                        method: 'POST',
-                        body:   formData,
-                        // No Content-Type header — browser sets it with boundary automatically
+                        method:      'POST',
+                        body:        formData,
+                        credentials: 'include',
                     });
 
-                    const text = await response.text();
-
-                    if (response.ok) {
-                        showResult('success', '✓ ' + text);
-                        // Reset form
-                        form.reset();
-                        label.textContent = 'Choose files...';
-                        fileList.style.display = 'none';
-                    } else {
-                        showResult('error', '✗ Upload failed: ' + text);
+                    if (!response.ok) {
+                        showError('Upload failed. Please try again.');
+                        return;
                     }
 
+                    // Response is the Models JSON from ultratraining
+                    // { model2: { r2: 0.97, ... }, model3: { r2: 0.94, ... }, model4: null }
+                    const models = await response.json();
+
+                    // Extract R2 values directly from model objects
+                    const r2m2  = models.model2 ? models.model2.r2 : 0;
+                    const r2m3  = models.model3 ? models.model3.r2 : 0;
+                    const r2m4  = models.model4 ? models.model4.r2 : 0;
+                    const built = models.model2 != null || models.model3 != null;
+                    const r2    = Math.max(r2m2, r2m3);
+
+                    showQuality(built, r2, r2m2, r2m3, r2m4,
+                        models.model2 != null,
+                        models.model3 != null,
+                        models.model4 != null);
+
+                    // Reset form
+                    form.reset();
+                    label.textContent      = 'Choose files...';
+                    fileList.style.display = 'none';
+
                 } catch (err) {
-                    showResult('error', '✗ Could not reach server: ' + err.message);
+                    showError('Could not reach server: ' + err.message);
                 } finally {
-                    uploadBtn.disabled  = false;
+                    uploadBtn.disabled     = false;
                     progress.style.display = 'none';
                 }
             });
 
-            function showResult(type, message) {
+            // ── Quality display ───────────────────────────────────────────
+            function showQuality(built, r2, r2m2, r2m3, r2m4,
+                                 m2built, m3built, m4built) {
                 result.style.display = 'block';
-                const color = type === 'success' ? '#5fb458' : '#f5543f';
-                const bg    = type === 'success' ? '#f0f7ef' : '#fff5f5';
+
+                let color, bgColor, label, sublabel;
+
+                if (!built) {
+                    color    = '#dc3545'; bgColor = '#fff5f5';
+                    label    = 'Insufficient data';
+                    sublabel = 'Upload more runs with varied terrain to build your model.';
+                } else if (r2 >= 0.95) {
+                    color    = '#1a7a1a'; bgColor = '#f0fff0';
+                    label    = 'Very High accuracy';
+                    sublabel = 'Your pace model is excellent. Predictions will be very reliable.';
+                } else {
+                    color    = '#5fb458'; bgColor = '#f0f7ef';
+                    label    = 'High accuracy';
+                    sublabel = 'Your pace model is good. Upload more runs to improve further.';
+                }
+
+                const r2Display = built
+                    ? (r2 * 100).toFixed(1) + '%' : '—';
+
                 result.innerHTML = `
-            <div style="background:${bg}; border-left:4px solid ${color};
-                        padding:16px; border-radius:2px; color:${color};">
-                ${message}
+            <div style="background:${bgColor};
+                        border-left:4px solid ${color};
+                        padding:16px 20px; border-radius:2px;">
+
+                <!-- Header -->
+                <div style="display:flex; align-items:center;
+                            gap:12px; margin-bottom:10px;">
+                    <span style="width:16px; height:16px; border-radius:50%;
+                                 background:${color}; display:inline-block;
+                                 flex-shrink:0;"></span>
+                    <div>
+                        <strong style="color:${color}; font-size:15px;">
+                            ${label}
+                        </strong>
+                    </div>
+                </div>
+
+                <!-- Subtitle -->
+                <p style="color:#555; font-size:13px;
+                          margin:0 0 12px 28px;">
+                    ${sublabel}
+                </p>
+
+                <!-- Per-model breakdown -->
+                <div style="display:flex; gap:20px; flex-wrap:wrap;
+                            margin-left:28px; font-size:12px; color:#888;">
+                    ${modelBadge('Model 2', m2built, r2m2)}
+                    ${modelBadge('Model 3', m3built, r2m3)}
+                    ${modelBadge('Model 4', m4built, r2m4)}
+                </div>
             </div>`;
+            }
+
+            function modelBadge(name, built, r2) {
+                if (!built) {
+                    // Model not built — R² was below 0.9
+                    return `<span style="color:#dc3545; font-weight:700;">${name}</span>`;
+                }
+                // Model built — R² >= 0.9, distinguish 0.9-0.95 vs >= 0.95
+                const color = r2 >= 0.95 ? '#1a7a1a'  // strong green
+                    : '#5fb458';  // green
+                return `<span style="color:${color}; font-weight:700;">${name}</span>`;
+            }
+
+            function showError(msg) {
+                result.style.display = 'block';
+                result.innerHTML = `
+            <div style="background:#fff5f5;
+                        border-left:4px solid #dc3545;
+                        padding:14px; border-radius:2px;
+                        color:#dc3545;">
+                ✗ ${escapeHtml(msg)}
+            </div>`;
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
             }
 
         })();

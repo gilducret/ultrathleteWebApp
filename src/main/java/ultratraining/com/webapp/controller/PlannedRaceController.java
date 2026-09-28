@@ -88,4 +88,18 @@ public class PlannedRaceController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response.getBody());
     }
+
+    @GetMapping("/api/{sessionId}/download")
+    @ResponseBody
+    public ResponseEntity<String> downloadSession(
+            @PathVariable int sessionId) {
+
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                apiBaseUrl + "/api/predictedsession/" + sessionId + "/download",
+                String.class
+        );
+        return ResponseEntity.status(response.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response.getBody());
+    }
 }

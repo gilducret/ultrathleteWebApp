@@ -31,7 +31,9 @@ public class SecurityConfig {
                         .ignoringRequestMatchers("/api/**", "/plan/**", "/races/**", "/follow/**")
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/css/**", "/js/**",
+                        .requestMatchers("/", "/follow/**",
+                                "/races/api/**",
+                                "/css/**", "/js/**",
                                 "/images/**", "/fonts/**").permitAll()
                         .anyRequest().authenticated()
                 )
