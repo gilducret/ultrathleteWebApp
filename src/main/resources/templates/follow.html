@@ -25,7 +25,7 @@
                         Loading...
                     </h3>
                     <p style="color:#6677aa; margin:4px 0 0 0;
-                               font-size:13px;">
+                               font-size:14px;">
                         Live tracking
                     </p>
                 </div>
@@ -44,7 +44,6 @@
 
     <!-- ═══════════════════════════════════════════
          RUNNER STATS BAR
-         Shown once race has started
     ════════════════════════════════════════════════ -->
     <div id="statsBar"
          style="display:none; background:#121F38; color:#fff;
@@ -93,10 +92,13 @@
             <h6 style="margin:0; color:#121F38; font-weight:700;">
                 Elevation Profile
             </h6>
-            <div style="font-size:11px; color:#888; display:flex; gap:16px;">
+            <div style="font-size:11px; color:#888; display:flex;
+                        gap:16px;">
                 <span style="color:#5fb458;">━ Route</span>
                 <span style="color:#e74c3c;">▶ Runner</span>
-                <span style="color:#5fb458; opacity:0.6;">| Checkpoint</span>
+                <span style="color:#5fb458; opacity:0.6;">
+                    | Checkpoint
+                </span>
             </div>
         </div>
         <div style="overflow-x:auto;">
@@ -119,6 +121,32 @@
         <div style="flex:2; min-width:300px; position:relative;">
             <div id="map" style="width:100%; height:450px;"></div>
 
+            <!-- Map legend -->
+            <div style="position:absolute; bottom:24px; left:10px;
+                        background:rgba(255,255,255,0.92);
+                        padding:8px 12px; border-radius:6px;
+                        z-index:1000; font-size:12px;
+                        box-shadow:0 1px 4px rgba(0,0,0,0.15);">
+                <div style="display:flex; align-items:center;
+                            gap:6px; margin-bottom:4px;">
+                    <div style="width:24px; height:3px;
+                                background:#aaa;"></div>
+                    <span style="color:#555;">Already covered</span>
+                </div>
+                <div style="display:flex; align-items:center;
+                            gap:6px; margin-bottom:4px;">
+                    <div style="width:24px; height:4px;
+                                background:#2ecc40;"></div>
+                    <span style="color:#555;">Remaining route</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <div style="width:12px; height:12px; border-radius:50%;
+                                background:#e74c3c; border:2px solid #fff;
+                                box-shadow:0 0 3px rgba(0,0,0,0.3);"></div>
+                    <span style="color:#555;">Runner</span>
+                </div>
+            </div>
+
             <!-- Not started overlay -->
             <div id="notStartedOverlay"
                  style="display:none; position:absolute; top:0; left:0;
@@ -129,9 +157,10 @@
                             border-radius:8px; text-align:center;">
                     <div style="font-size:32px; margin-bottom:8px;">⏳</div>
                     <strong>Race not started yet</strong>
-                    <p style="color:#888; margin:8px 0 0 0; font-size:13px;">
-                        This page will update automatically
-                        when the runner starts.
+                    <p style="color:#888; margin:8px 0 0 0;
+                               font-size:13px;">
+                        This page updates automatically when
+                        the runner starts.
                     </p>
                 </div>
             </div>
@@ -203,7 +232,9 @@
             let elevationData      = [];
             let totalDistanceM     = 0;
             let sessionCheckpoints = [];
+            let allRoutePoints     = [];   // full route [lat, lon] array
             let runnerDistanceM    = 0;
+            let runnerLatLng       = null; // [lat, lon] of runner
 
             // ── Map setup ─────────────────────────────────────────────────
             const map = L.map('map', { zoomControl: true });
@@ -212,8 +243,10 @@
                 maxZoom: 18,
             }).addTo(map);
 
-            let routePolyline = null;
-            let runnerMarker  = null;
+            // Polyline layers — replaced on each poll
+            let donePolyline      = null;
+            let remainingPolyline = null;
+            let runnerMarker      = null;
 
             const runnerIcon = L.divIcon({
                 className: '',
@@ -224,16 +257,55 @@
                 iconAnchor: [9, 9],
             });
 
-            // ── Set share URL ─────────────────────────────────────────────
+            // ── Share URL ─────────────────────────────────────────────────
             document.getElementById('shareUrl').textContent = window.location.href;
-
             window.copyShareLink = function () {
                 navigator.clipboard.writeText(window.location.href)
                     .then(() => alert('Link copied to clipboard!'))
                     .catch(() => alert(window.location.href));
             };
 
-            // ── Load session (route + elevation + checkpoints) ────────────
+            // ── Find nearest route point index to a GPS position ──────────
+            function findNearestRouteIndex(lat, lon) {
+                let bestDist = Infinity;
+                let bestIdx  = 0;
+                for (let i = 0; i < allRoutePoints.length; i++) {
+                    const dlat = allRoutePoints[i][0] - lat;
+                    const dlon = allRoutePoints[i][1] - lon;
+                    const d    = dlat * dlat + dlon * dlon;
+                    if (d < bestDist) { bestDist = d; bestIdx = i; }
+                }
+                return bestIdx;
+            }
+
+            // ── Draw or update split polylines on the map ─────────────────
+            function updateMapPolylines(runnerLat, runnerLon) {
+                if (allRoutePoints.length === 0) return;
+
+                const splitIdx = runnerLat !== null
+                    ? findNearestRouteIndex(runnerLat, runnerLon)
+                    : 0;
+
+                // Remove existing polylines
+                if (donePolyline)      { map.removeLayer(donePolyline);      donePolyline      = null; }
+                if (remainingPolyline) { map.removeLayer(remainingPolyline); remainingPolyline = null; }
+
+                if (splitIdx > 0) {
+                    // Done section — grey, thinner
+                    donePolyline = L.polyline(
+                        allRoutePoints.slice(0, splitIdx + 1),
+                        { color: '#aaa', weight: 2, opacity: 0.7 }
+                    ).addTo(map);
+                }
+
+                // Remaining section — strong green, thicker
+                remainingPolyline = L.polyline(
+                    allRoutePoints.slice(splitIdx),
+                    { color: '#2ecc40', weight: 4, opacity: 0.9 }
+                ).addTo(map);
+            }
+
+            // ── Load session ──────────────────────────────────────────────
             async function loadSession() {
                 try {
                     const response = await fetch(
@@ -246,32 +318,30 @@
                     }
 
                     const info = await response.json();
-
-                    // Title
                     document.getElementById('raceTitle').textContent =
                         info.raceName || 'Live Tracking';
 
-                    // Elevation profile
+                    // Store elevation data
                     if (info.elevationProfile && info.elevationProfile.length > 0) {
-                        elevationData  = info.elevationProfile;
-                        totalDistanceM = info.totalDistanceM || 0;
+                        elevationData      = info.elevationProfile;
+                        totalDistanceM     = info.totalDistanceM || 0;
                         sessionCheckpoints = info.checkpoints || [];
                         renderElevationChart(0);
                     }
 
-                    // Draw route on map
+                    // Store and draw route
                     if (info.routePoints && info.routePoints.length > 0) {
-                        routePolyline = L.polyline(info.routePoints, {
-                            color:   '#5fb458',
-                            weight:  3,
-                            opacity: 0.8,
-                        }).addTo(map);
-                        map.fitBounds(routePolyline.getBounds(),
-                            { padding: [30, 30] });
+                        allRoutePoints = info.routePoints;
+
+                        // Initial draw — full route in green, no runner yet
+                        updateMapPolylines(null, null);
+                        map.fitBounds(
+                            L.polyline(allRoutePoints).getBounds(),
+                            { padding: [30, 30] }
+                        );
 
                         // Start marker
-                        const start = info.routePoints[0];
-                        L.marker(start, {
+                        L.marker(allRoutePoints[0], {
                             icon: L.divIcon({
                                 className: '',
                                 html: `<div style="background:#2ecc71; color:#fff;
@@ -284,8 +354,7 @@
                         }).addTo(map);
 
                         // Finish marker
-                        const finish =
-                            info.routePoints[info.routePoints.length - 1];
+                        const finish = allRoutePoints[allRoutePoints.length - 1];
                         L.marker(finish, {
                             icon: L.divIcon({
                                 className: '',
@@ -299,7 +368,7 @@
                         }).addTo(map);
                     }
 
-                    // Initial checkpoint list (no ETAs yet)
+                    // Initial checkpoint list
                     renderCheckpointList(info.checkpoints || [], null);
 
                     // Start polling
@@ -313,7 +382,7 @@
                 }
             }
 
-            // ── Poll for live position + ETAs ─────────────────────────────
+            // ── Poll position ─────────────────────────────────────────────
             async function pollPosition() {
                 try {
                     const response = await fetch(
@@ -330,7 +399,6 @@
                         return;
                     }
 
-                    // Hide not-started overlay
                     document.getElementById('notStartedOverlay').style.display
                         = 'none';
 
@@ -355,27 +423,34 @@
                         .find(cp => !cp.passed);
                     if (next) {
                         const eta = next.etaTimestamp
-                            ? new Date(next.etaTimestamp)
-                                .toLocaleTimeString([], {
-                                    hour:   '2-digit',
-                                    minute: '2-digit'
-                                })
+                            ? new Date(next.etaTimestamp).toLocaleTimeString([], {
+                                hour: '2-digit', minute: '2-digit'
+                            })
                             : '—';
                         document.getElementById('statNext').textContent =
                             next.name + ' · ' + eta;
                     }
 
-                    // Update runner on map
-                    const latlng = [update.latitude, update.longitude];
+                    // ── Update map with split polylines ────────────────────
+                    const lat = update.latitude;
+                    const lon = update.longitude;
+                    runnerLatLng = [lat, lon];
+
+                    // Redraw done/remaining split
+                    updateMapPolylines(lat, lon);
+
+                    // Update runner marker
                     if (runnerMarker) {
-                        runnerMarker.setLatLng(latlng);
+                        runnerMarker.setLatLng([lat, lon]);
                     } else {
-                        runnerMarker = L.marker(latlng, { icon: runnerIcon })
+                        runnerMarker = L.marker([lat, lon], { icon: runnerIcon })
                             .addTo(map)
                             .bindPopup('<b>Runner</b>');
                     }
+                    // Bring marker to front
+                    runnerMarker.setZIndexOffset(1000);
 
-                    // Update elevation chart with runner position
+                    // Update elevation chart
                     renderElevationChart(runnerDistanceM);
 
                     // Update checkpoint list
@@ -531,13 +606,15 @@
                             ${isNext ? '▶ ' : isPassed ? '✓ ' : ''}
                             ${escapeHtml(cp.name)}
                         </div>
-                        <div style="font-size:11px; color:#aaa; margin-top:2px;">
+                        <div style="font-size:11px; color:#aaa;
+                                    margin-top:2px;">
                             ${(cp.distanceFromStartM / 1000).toFixed(1)} km
-                            ${!isPassed && runnerDistanceM > 0
-                                                ? ', ' + Math.max(0,
-                                                ((cp.distanceFromStartM - runnerDistanceM) / 1000)
-                                            ).toFixed(1) + ' km left'
-                                                : ''}
+                            ${!isPassed && update
+                        ? ', ' + Math.max(0,
+                        ((cp.distanceFromStartM
+                                - (update.distanceFromStartM || 0))
+                            / 1000)).toFixed(1) + ' km left'
+                        : ''}
                         </div>
                     </div>
                     <div style="text-align:right; margin-left:12px;
@@ -550,20 +627,19 @@
 
             // ── Helpers ───────────────────────────────────────────────────
             function formatDuration(secs) {
-                if (!secs || secs <= 0) return '0:00';
+                if (!secs || secs <= 0) return '0m';
                 const h = Math.floor(secs / 3600);
                 const m = Math.floor((secs % 3600) / 60);
-                const s = Math.floor(secs % 60);
                 if (h > 0) return h + 'h' + String(m).padStart(2,'0') + 'm';
-                return m + ':' + String(s).padStart(2,'0');
+                return m + 'm';
             }
 
             function timeSince(date) {
                 const s = Math.floor((Date.now() - date.getTime()) / 1000);
                 if (s < 60)   return s + 's ago';
                 if (s < 3600) return Math.floor(s / 60) + 'm ago';
-                return Math.floor(s / 3600) + 'h ' +
-                    Math.floor((s % 3600) / 60) + 'm ago';
+                return Math.floor(s / 3600) + 'h '
+                    + Math.floor((s % 3600) / 60) + 'm ago';
             }
 
             function escapeHtml(str) {
